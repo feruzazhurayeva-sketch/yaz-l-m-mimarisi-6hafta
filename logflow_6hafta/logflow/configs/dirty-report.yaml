@@ -1,0 +1,31 @@
+# Kaos testi hattı: bozuk girdi -> geçerli kayıtlar ana hedefe, hatalı kayıtlar dead-letter hedefine.
+pipeline:
+  name: dirty-report
+  source:
+    type: file
+    params:
+      path: data/access-dirty.log
+  stages:
+    - type: parse
+      on_error: DEAD_LETTER          # kesik satır, UTF-8 dışı bayt, boş satır, 100 KB'lık satır
+      params:
+        format: clf
+        max_line_length: 8192
+    - type: validate
+      on_error: DEAD_LETTER          # negatif bayt, 1970/2099 tarihi, geçersiz IP, durum kodu aralığı
+      params:
+        required_fields: [client_ip, method, path, status]
+        ranges:
+          status: {min: 100, max: 599}
+          bytes: {min: 0}
+        timestamp: {min: "2000-01-01", max: now}
+        ip_format: true
+  sink:
+    type: file
+    params:
+      path: out/dirty-clean.txt
+  dead_letter:
+    type: dead_letter_file
+    params:
+      path: out/dead-letter.jsonl
+      max_raw_length: 200

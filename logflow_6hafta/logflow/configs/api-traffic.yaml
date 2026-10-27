@@ -1,0 +1,31 @@
+pipeline:
+  name: api-traffic-extract
+  source:
+    type: file
+    params:
+      path: data/access-small.log
+  stages:
+    - type: parse
+      on_error: DEAD_LETTER
+      params:
+        format: clf
+    - type: filter
+      params:
+        field: path
+        op: "startswith"
+        value: "/api"
+    - type: project
+      params:
+        fields:
+          - timestamp
+          - method
+          - path
+          - status
+  sink:
+    type: file
+    params:
+      path: out/api-traffic.txt
+  dead_letter:
+    type: dead_letter_file
+    params:
+      path: out/dead-letter-api-traffic.jsonl

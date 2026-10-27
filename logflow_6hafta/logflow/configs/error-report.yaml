@@ -1,0 +1,31 @@
+pipeline:
+  name: error-report
+  source:
+    type: file
+    params:
+      path: data/access-small.log
+  stages:
+    - type: parse
+      on_error: DEAD_LETTER
+      params:
+        format: clf
+    - type: filter
+      params:
+        field: status
+        op: ">="
+        value: 400
+    - type: project
+      params:
+        fields:
+          - timestamp
+          - client_ip
+          - status
+          - path
+  sink:
+    type: file
+    params:
+      path: out/errors.txt
+  dead_letter:
+    type: dead_letter_file
+    params:
+      path: out/dead-letter-error-report.jsonl

@@ -1,0 +1,30 @@
+pipeline:
+  name: bandwidth-by-client-extract
+  source:
+    type: file
+    params:
+      path: data/access-small.log
+  stages:
+    - type: parse
+      on_error: DEAD_LETTER
+      params:
+        format: clf
+    - type: filter
+      params:
+        field: bytes
+        op: ">"
+        value: 500
+    - type: project
+      params:
+        fields:
+          - client_ip
+          - bytes
+          - path
+  sink:
+    type: file
+    params:
+      path: out/bandwidth.txt
+  dead_letter:
+    type: dead_letter_file
+    params:
+      path: out/dead-letter-bandwidth-client.jsonl
